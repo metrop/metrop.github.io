@@ -1,44 +1,168 @@
-if CLIENT then
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fog Is Coming // Loading</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-    local showIntro = true
-    local introAlpha = 255
-    local introStartTime = 0
+        body {
+            background-color: #080808;
+            color: #d0d0d0;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
 
-    hook.Add("InitPostEntity", "Mystic_ClientIntroInit", function()
-        introStartTime = CurTime()
-        showIntro = true
-        introAlpha = 255
+        /* CRT Scanlines & Flicker Effect */
+        body::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 999;
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 600px;
+            text-align: center;
+            border: 1px solid #331010;
+            background: rgba(12, 12, 12, 0.9);
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(100, 10, 10, 0.2);
+            position: relative;
+        }
+
+        h1 {
+            color: #b32424;
+            font-size: 20px;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .status {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 30px;
+            min-height: 20px;
+        }
+
+        .tip-box {
+            font-size: 15px;
+            color: #ccc;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: 1px dashed #222;
+            border-bottom: 1px dashed #222;
+            padding: 15px 0;
+            margin-bottom: 25px;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .fade {
+            opacity: 0;
+        }
+
+        /* Loading Progress Bar */
+        .loader-bar {
+            width: 100%;
+            height: 4px;
+            background: #1a1a1a;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loader-progress {
+            position: absolute;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: #b32424;
+            animation: indeterminate 2s infinite linear;
+        }
+
+        @keyframes indeterminate {
+            0% { left: -100%; right: 100%; }
+            50% { left: 30%; right: -30%; }
+            100% { left: 100%; right: -100%; }
+        }
+
+        .footer-info {
+            font-size: 11px;
+            color: #555;
+            margin-top: 20px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>SECTOR 4 // QUARANTINED</h1>
+        <div class="status" id="status-text">Establishing connection to sector...</div>
         
-        surface.PlaySound("ambient/levels/citadel/zapper_beam1.wav")
-    end)
+        <div class="tip-box" id="tip-container">
+            Loading environmental telemetry...
+        </div>
 
-    hook.Add("HUDPaint", "Mystic_OnboardingSystem", function()
-        local ply = LocalPlayer()
-        if not IsValid(ply) then return end
+        <div class="loader-bar">
+            <div class="loader-progress"></div>
+        </div>
 
-        local scrW, scrH = ScrW(), ScrH()
+        <div class="footer-info">THE FOG IS COMING // DO NOT TRUST THE MIMICS</div>
+    </div>
 
-        -- 1. Cinematic Intro (first 4 seconds)
-        if showIntro then
-            local elapsed = CurTime() - introStartTime
-            if elapsed < 4.0 then
-                if elapsed > 3.0 then
-                    introAlpha = math.Clamp((4.0 - elapsed) / 1.0 * 255, 0, 255)
-                end
+    <script>
+        // Non-spoiler hints for horror/ARG mechanics
+        const tips = [
+            "Listen carefully. Not every sound in the next room is an echo.",
+            "Press [F4] to open the crafting system and build survival equipment.",
+            "The fog is arriving. If you see red warnings on the horizon, seek cover.",
+            "Certain inhabitants of this place can imitate human voices with precision.",
+            "Proximity voice chat operates at limited range. Keep quiet when necessary.",
+            "If you feel a sudden surge of paranoia — you might not be alone in the building.",
+            "Resources are scarce. Every piece of metal and chemical scrap counts."
+        ];
 
-                surface.SetDrawColor(0, 0, 0, introAlpha)
-                surface.DrawRect(0, 0, scrW, scrH)
+        let currentTip = 0;
+        const tipElement = document.getElementById('tip-container');
 
-                draw.SimpleText("SECTOR 4 // QUARANTINED", "DermaDefaultBold", scrW / 2, scrH / 2 - 20, Color(180, 40, 40, introAlpha), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-                draw.SimpleText("TRUST NO ONE. GATHER RESOURCES.", "DermaDefault", scrW / 2, scrH / 2 + 10, Color(200, 200, 200, introAlpha), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-            else
-                showIntro = false
-            end
-        end
+        function changeTip() {
+            tipElement.classList.add('fade');
+            setTimeout(() => {
+                currentTip = (currentTip + 1) % tips.length;
+                tipElement.innerText = tips[currentTip];
+                tipElement.classList.remove('fade');
+            }, 500);
+        }
 
-        -- 2. Minimalist Objective HUD (top-left corner)
-        draw.SimpleText("[ OBJECTIVE ]", "DermaDefaultBold", 20, 20, Color(180, 40, 40, 220), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
-        draw.SimpleText("Craft a weapon and find shelter.", "DermaDefault", 20, 38, Color(220, 220, 220, 200), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
-    end)
+        // Cycle tips every 4.5 seconds
+        setInterval(changeTip, 4500);
 
-end
+        // Native Garry's Mod loading hooks
+        function DownloadingFile(fileName) {
+            document.getElementById('status-text').innerText = "Downloading asset: " + fileName;
+        }
+
+        function SetStatusChanged(status) {
+            document.getElementById('status-text').innerText = status;
+        }
+    </script>
+</body>
+</html>
